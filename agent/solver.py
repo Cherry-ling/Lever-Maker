@@ -12,11 +12,13 @@
 """
 import json, os, sys, glob, re, time, heapq
 from collections import deque, defaultdict
+from functools import lru_cache
 
 from base import block_local_poses, WALL_CYCLE_PIPE, BLOCK_TYPE_POSES, rot_poses
 
 NULL = -1
 MODE_VER, MODE_HOR = 1, 2
+_EMPTY_FS = frozenset()
 
 # Block 不可变 tuple 字段序（17 元）：
 #   0 color  1 wrapped  2 countdown  3 gx  4 gy  5 local  6 layer
@@ -25,9 +27,13 @@ MODE_VER, MODE_HOR = 1, 2
 B_COLOR=0; B_WRAPPED=1; B_CD=2; B_GX=3; B_GY=4; B_LOCAL=5; B_LAYER=6
 B_MODE=7; B_FLOOR=8; B_GROUP=9; B_STAR=10; B_STEP=11; B_BOMB=12
 
-def block_world(b):
-    gx, gy, local = b[B_GX], b[B_GY], b[B_LOCAL]
+@lru_cache(maxsize=None)
+def _world(gx, gy, local):
     return frozenset((gx+dx, gy+dy) for (dx,dy) in local)
+
+
+def block_world(b):
+    return _world(b[B_GX], b[B_GY], b[B_LOCAL])
 
 
 # ---------------------------------------------------------------------------
@@ -361,7 +367,7 @@ def build_clusters(blocks):
         out.append((i, ((i, 0, 0),)))
     return out
 
-def reachable_anchors(blocks, cluster, model, occ_extra=()):
+def reachable_anchors(blocks, cluster, model, occ_by_layer, occ_extra=_EMPTY_FS):
     ref, members = cluster
     rx, ry = blocks[ref][B_GX], blocks[ref][B_GY]
     layer = blocks[ref][B_LAYER]
@@ -369,12 +375,14 @@ def reachable_anchors(blocks, cluster, model, occ_extra=()):
     axis_h = all(blocks[i][B_MODE] != MODE_VER for i,_,_ in members)
     axis_v = all(blocks[i][B_MODE] != MODE_HOR for i,_,_ in members)
 
-    occ = set(occ_extra)
-    for i, b in enumerate(blocks):
-        if i in cluster_set: continue
-        if b[B_LAYER] != layer: continue
-        occ |= block_world(b)
-    walls = model["walls_by_layer"].get(layer, set())
+    # 自身世界格不阻挡自己；其余同层块 + 静态障碍（机身/装修覆盖）阻挡
+    self_world = set()
+    for i,_,_ in members:
+        self_world |= _world(blocks[i][B_GX], blocks[i][B_GY], blocks[i][B_LOCAL])
+    # 自身块网格不阻挡自己（从「同层块占格」里剔除）；静态障碍（机身/装修覆盖）不剔除，
+    # 即便与本簇自占格重叠也按旧语义照拦（装修覆盖格阻挡）。
+    occ = (occ_by_layer.get(layer, _EMPTY_FS) - self_world) | occ_extra
+    walls = model["walls_by_layer"].get(layer, _EMPTY_FS)
     cells = model["cells"]
     cell_color = model["cell_color"]
 
@@ -468,10 +476,12 @@ def resolve(blocks, bi, bj):
 # 规范化（簇级，去重）
 # ---------------------------------------------------------------------------
 def _canon_blocks(blocks):
-    """簇级规范化：groupID>0 成簇（id 值归一化），groupID=0 各自成簇。"""
+    """簇级规范化：groupID>0 成簇（id 值归一化），groupID=0 各自成簇。
+    mrec 输出扁平整数元组（局部格摊平），加速排序/哈希。"""
     def mrec(b):
-        return (b[B_COLOR], b[B_WRAPPED], b[B_CD], b[B_GX], b[B_GY], b[B_LOCAL],
+        head = (b[B_COLOR], b[B_WRAPPED], b[B_CD], b[B_GX], b[B_GY],
                 b[B_LAYER], b[B_MODE], b[B_FLOOR])
+        return head + tuple(v for p in b[B_LOCAL] for v in p)
     groups = defaultdict(list)
     singles = []
     for b in blocks:
@@ -744,9 +754,10 @@ def _apply_lower_unlock(blocks, lower_areas):
 # ---------------------------------------------------------------------------
 # 后继：拖到目标后确定性结算至多一个匹配（返回 (is_match, state)）
 # ---------------------------------------------------------------------------
-def step_state(blocks, members, dx, dy, moved, shields=(), locked_cells=(), iceshavers=(), hidden_cells=(), iced_cells=(), trains=()):
+def step_state(blocks, members, dx, dy, moved, stat_global, shields=(), locked_cells=(), iceshavers=(), hidden_cells=(), iced_cells=(), trains=()):
     """返回 (kind, succ_blocks, extra)：kind ∈ match/shave/none。
-    优先级：搓冰机相撞 > 普通对消（同 ResolveImmediateDragInteractions）。"""
+    优先级：搓冰机相撞 > 普通对消（同 ResolveImmediateDragInteractions）。
+    stat_global = 静态可匹配块（按 (gx,gy,color,local) 预排序的 (j,b) 列表），此处仅过滤掉本簇。"""
     cluster_set = {i for i,_,_ in members}
     cand = [(i, moved[i]) for i,_,_ in members
             if moved[i][B_FLOOR] == 0 and not moved[i][B_WRAPPED]
@@ -755,13 +766,7 @@ def step_state(blocks, members, dx, dy, moved, shields=(), locked_cells=(), ices
             and not _is_hidden(moved[i], hidden_cells)
             and not _is_iced(moved[i], iced_cells)]
     cand.sort(key=lambda t: (t[1][B_GX], t[1][B_GY], t[1][B_COLOR], t[1][B_LOCAL]))
-    stat = [(j, b) for j,b in enumerate(moved) if j not in cluster_set
-            and b[B_FLOOR] == 0 and not b[B_WRAPPED]
-            and not _block_in_shield(b, shields)
-            and b[B_STEP] <= 0
-            and not _is_hidden(b, hidden_cells)
-            and not _is_iced(b, iced_cells)]
-    stat.sort(key=lambda t: (t[1][B_GX], t[1][B_GY], t[1][B_COLOR], t[1][B_LOCAL]))
+    stat = [(j, b) for (j, b) in stat_global if j not in cluster_set]
     # 搓冰机相撞（同色 + 与颜色段四邻相邻 → 消费该块 + 该段 HP-1）
     for (mi, mb) in cand:
         for si, s in enumerate(iceshavers):
@@ -846,6 +851,23 @@ def successors(state, model):
     body_occ = alive_body_cells(dispensers) | _shave_all_body(iceshavers) | _train_all_cells(trains)
     locked_cells = _dec_locked_cells(decorations)
     occ_extra = body_occ | locked_cells
+
+    # 预计算：分层的「同层块占格」（隐藏块按现有语义随所在层处理）
+    occ_by_layer = {}
+    for i, b in enumerate(blocks):
+        occ_by_layer.setdefault(b[B_LAYER], set()).update(_world(b[B_GX], b[B_GY], b[B_LOCAL]))
+    occ_by_layer = {l: frozenset(s) for l, s in occ_by_layer.items()}
+
+    # 预计算：静态可匹配块（后续 step_state 仅过滤本簇；排序键与 cand 一致）
+    stat_global = sorted(
+        ((j, b) for j, b in enumerate(blocks)
+         if b[B_FLOOR] == 0 and not b[B_WRAPPED]
+         and not _block_in_shield(b, model_shields)
+         and b[B_STEP] <= 0
+         and not _is_hidden(b, hidden_cells)
+         and not _is_iced(b, iced_cells)),
+        key=lambda t: (t[1][B_GX], t[1][B_GY], t[1][B_COLOR], t[1][B_LOCAL]))
+
     match_succs = []
     repos_succs = []
     for (ref, members) in build_clusters(blocks):
@@ -861,14 +883,14 @@ def successors(state, model):
             continue  # 全冰覆盖 → 不可拖
         rx, ry = blocks[ref][B_GX], blocks[ref][B_GY]
         cluster_set = {i for i,_,_ in members}
-        for (ax, ay) in reachable_anchors(blocks, (ref, members), model, occ_extra=occ_extra):
+        for (ax, ay) in reachable_anchors(blocks, (ref, members), model, occ_by_layer, occ_extra):
             dx, dy = ax-rx, ay-ry
             moved = tuple(
                 blocks[k] if k not in cluster_set else
                 blocks[k][:B_GX] + (blocks[k][B_GX]+dx,) + (blocks[k][B_GY]+dy,) + blocks[k][B_GY+1:]
                 for k in range(len(blocks))
             )
-            kind, succ, extra = step_state(blocks, members, dx, dy, moved,
+            kind, succ, extra = step_state(blocks, members, dx, dy, moved, stat_global,
                                            shields=model_shields, locked_cells=locked_cells,
                                            iceshavers=iceshavers, hidden_cells=hidden_cells,
                                            iced_cells=iced_cells, trains=trains)
@@ -944,6 +966,23 @@ def _match_gap(blocks, model):
     return best
 
 
+def _parity_dead(state):
+    """奇偶死锁剪枝：每个「颜色 c 的块计数（含无色包装/双色内核，它们终将揭示为该色）」
+    在一次普通对消中恒减 2，揭示/剥壳不改计数 → 奇偶不变；终态全 0（偶）。
+    搓冰机相撞 / 火车端部各消费 1 块、制造机可新增块 → 会打破奇偶，故有这些存活来源时不做判断。"""
+    blocks, dispensers, decorations, lower_areas, iceshavers, ice_areas, trains = state
+    if any(q for (gx, gy, rot, layer, q) in dispensers):
+        return False
+    if any(_shave_alive(s) for s in iceshavers):
+        return False
+    if any(_train_alive(t) for t in trains):
+        return False
+    cnt = defaultdict(int)
+    for b in blocks:
+        cnt[b[B_COLOR]] += 1
+    return any(v % 2 == 1 for v in cnt.values())
+
+
 def _is_goal(state):
     blocks, dispensers, decorations, lower_areas, iceshavers, ice_areas, trains = state
     # 通关 = 无块(含隐藏块) + 制造机空 + 装修区全解锁 + 无存活搓冰机 + 无存活火车(CheckGameWin)
@@ -1001,9 +1040,12 @@ def solve_level(level, max_states=500000, max_depth=300, timeout=60.0):
         return {"result": "not-modeled", "reasons": issues, "states": 0, "steps": None, "time": 0.0}
 
     state = _initial_state(model)
+    t0 = time.time()
+    if _parity_dead(state):
+        return {"result": "unsolvable", "reasons": issues, "states": 1,
+                "steps": None, "time": time.time()-t0}
     visited = {canonical_key(state)}
     stack = [(state, 0)]
-    t0 = time.time()
 
     while stack:
         cur, depth = stack.pop()
@@ -1016,6 +1058,8 @@ def solve_level(level, max_states=500000, max_depth=300, timeout=60.0):
         if depth >= max_depth or len(visited) >= max_states:
             continue
         for succ in successors(cur, model):
+            if _parity_dead(succ):
+                continue  # 颜色奇偶死锁，绝不达终态
             key = canonical_key(succ)
             if key not in visited:
                 visited.add(key)
@@ -1035,11 +1079,14 @@ def solve_min_steps(level, max_states=500000, max_depth=300, timeout=60.0):
         return {"result": "not-modeled", "reasons": issues, "states": 0, "steps": None, "time": 0.0}
 
     state = _initial_state(model)
+    t0 = time.time()
+    if _parity_dead(state):
+        return {"result": "unsolvable", "reasons": issues, "states": 1,
+                "steps": None, "time": time.time()-t0}
     start_key = canonical_key(state)
     best = {start_key: 0}
     counter = 1
     heap = [(_h(state), 0, 0, start_key, state)]
-    t0 = time.time()
 
     while heap:
         f, g, _, key, cur = heapq.heappop(heap)
@@ -1054,6 +1101,8 @@ def solve_min_steps(level, max_states=500000, max_depth=300, timeout=60.0):
         if g >= max_depth or len(best) >= max_states:
             continue
         for succ in successors(cur, model):
+            if _parity_dead(succ):
+                continue  # 颜色奇偶死锁，绝不达终态
             skey = canonical_key(succ)
             ng = g + 1
             if skey not in best or best[skey] > ng:
