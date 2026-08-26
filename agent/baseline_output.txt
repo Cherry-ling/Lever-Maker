@@ -1,0 +1,148 @@
+100   solvable     steps=45    states=338      0.03s 
+101   timeout      steps=-     states=35936    6.00s 
+102   timeout      steps=-     states=35097    6.00s 
+103   timeout      steps=-     states=24984    6.00s 
+104   timeout      steps=-     states=21711    6.00s 
+105   timeout      steps=-     states=31959    6.00s 
+106   timeout      steps=-     states=22917    6.00s 
+107   timeout      steps=-     states=14775    6.00s 
+108   timeout      steps=-     states=23030    6.00s 
+109   timeout      steps=-     states=10331    6.00s 
+10    timeout      steps=-     states=27611    6.00s 
+110   timeout      steps=-     states=43539    6.00s 
+111   timeout      steps=-     states=15992    6.00s 
+112   timeout      steps=-     states=10504    6.00s 
+113   timeout      steps=-     states=32291    6.00s 
+114   timeout      steps=-     states=13369    6.00s 
+115   timeout      steps=-     states=15884    6.00s 
+116   timeout      steps=-     states=8983     6.00s 
+117   timeout      steps=-     states=10185    6.00s 
+118   timeout      steps=-     states=24624    6.00s 
+119   timeout      steps=-     states=13898    6.00s 
+11    timeout      steps=-     states=55743    6.00s 
+120   not-modeled  steps=-     states=0        0.00s bombSecs
+121   not-modeled  steps=-     states=0        0.00s bombSecs
+122   not-modeled  steps=-     states=0        0.00s bombSecs
+123   timeout      steps=-     states=36306    6.00s 
+124   not-modeled  steps=-     states=0        0.00s bombSecs
+125   timeout      steps=-     states=20474    6.00s 
+126   not-modeled  steps=-     states=0        0.00s bombSecs
+127   timeout      steps=-     states=27176    6.00s 
+128   timeout      steps=-     states=16054    6.00s 
+129   timeout      steps=-     states=13638    6.00s 
+12    timeout      steps=-     states=56166    6.00s 
+130   not-modeled  steps=-     states=0        0.00s bombSecs
+131   timeout      steps=-     states=29553    6.00s 
+132   timeout      steps=-     states=13373    6.00s 
+133   not-modeled  steps=-     states=0        0.00s bombSecs
+134   timeout      steps=-     states=9118     6.00s 
+135   timeout      steps=-     states=28644    6.00s 
+136   timeout      steps=-     states=10098    6.00s 
+137   timeout      steps=-     states=22308    6.00s 
+138   timeout      steps=-     states=16647    6.00s 
+139   timeout      steps=-     states=24937    6.00s 
+13    timeout      steps=-     states=41399    6.00s 
+140   timeout      steps=-     states=12929    6.00s 
+141   timeout      steps=-     states=17337    6.00s 
+142   timeout      steps=-     states=13154    6.00s 
+143   timeout      steps=-     states=17130    6.00s 
+144   timeout      steps=-     states=13584    6.00s 
+145   not-modeled  steps=-     states=0        0.00s bombSecs
+146   timeout      steps=-     states=14515    6.00s 
+147   timeout      steps=-     states=11614    6.00s 
+148   timeout      steps=-     states=14231    6.00s 
+149   timeout      steps=-     states=20027    6.00s 
+14    timeout      steps=-     states=35981    6.00s 
+150   timeout      steps=-     states=44216    6.00s 
+151   unsolvable   steps=-     states=10819    3.11s 
+152   timeout      steps=-     states=18214    6.00s 
+153   timeout      steps=-     states=20975    6.00s 
+154   unsolvable   steps=-     states=1480     1.33s 
+155   timeout      steps=-     states=14966    6.00s 
+156   timeout      steps=-     states=15315    6.00s 
+157   timeout      steps=-     states=11479    6.00s 
+158   timeout      steps=-     states=11476    6.00s 
+159   timeout      steps=-     states=18033    6.00s 
+15    solvable     steps=16    states=70       0.01s 
+160   not-modeled  steps=-     states=0        0.00s bombSecs
+161   unsolvable   steps=-     states=2971     0.71s 
+162   timeout      steps=-     states=16373    6.00s 
+163   timeout      steps=-     states=30420    6.00s 
+164   timeout      steps=-     states=23328    6.00s 
+165   unsolvable   steps=-     states=722      0.56s 
+166   timeout      steps=-     states=16622    6.00s 
+167   timeout      steps=-     states=9961     6.00s 
+168   timeout      steps=-     states=24638    6.00s 
+169   not-modeled  steps=-     states=0        0.00s bombSecs
+16    timeout      steps=-     states=32967    6.00s 
+170   timeout      steps=-     states=11412    6.00s 
+171   unsolvable   steps=-     states=13569    5.36s 
+172   timeout      steps=-     states=7375     6.00s 
+173   timeout      steps=-     states=18547    6.00s 
+174   timeout      steps=-     states=9922     6.00s 
+175   timeout      steps=-     states=23564    6.00s 
+176   not-modeled  steps=-     states=0        0.00s withKey
+177   timeout      steps=-     states=10621    6.01s 
+178   not-modeled  steps=-     states=0        0.00s bombSecs
+179   timeout      steps=-     states=26648    6.00s 
+17    unsolvable   steps=-     states=1        0.00s 
+180   timeout      steps=-     states=28367    6.00s 
+181   timeout      steps=-     states=15660    6.00s 
+182   timeout      steps=-     states=13314    6.00s 
+183   timeout      steps=-     states=15155    6.00s 
+184   timeout      steps=-     states=17940    6.00s 
+185   timeout      steps=-     states=24725    6.00s 
+186   timeout      steps=-     states=13415    6.00s 
+187   timeout      steps=-     states=12841    6.00s 
+188   not-modeled  steps=-     states=0        0.00s bombSecs
+189   timeout      steps=-     states=16758    6.00s 
+18    timeout      steps=-     states=61765    6.00s 
+190   timeout      steps=-     states=53052    6.00s 
+191   timeout      steps=-     states=5064     6.00s 
+192   timeout      steps=-     states=18387    6.00s 
+193   timeout      steps=-     states=24678    6.00s 
+194   timeout      steps=-     states=15414    6.00s 
+195   not-modeled  steps=-     states=0        0.00s bombSecs
+196   timeout      steps=-     states=7511     6.00s 
+197   timeout      steps=-     states=9945     6.00s 
+198   timeout      steps=-     states=20427    6.00s 
+199   timeout      steps=-     states=15811    6.00s 
+19    timeout      steps=-     states=31273    6.00s 
+1     solvable     steps=3     states=5        0.00s 
+200   timeout      steps=-     states=35539    6.00s 
+201   timeout      steps=-     states=39143    6.00s 
+202   timeout      steps=-     states=34537    6.00s 
+203   solvable     steps=16    states=70       0.01s 
+204   timeout      steps=-     states=23438    6.00s 
+205   timeout      steps=-     states=39739    6.00s 
+206   timeout      steps=-     states=23788    6.00s 
+207   unsolvable   steps=-     states=2270     0.77s 
+208   timeout      steps=-     states=59250    6.00s 
+209   timeout      steps=-     states=35154    6.00s 
+20    timeout      steps=-     states=52290    6.00s 
+210   timeout      steps=-     states=47623    6.00s 
+211   timeout      steps=-     states=59407    6.00s 
+212   timeout      steps=-     states=46852    6.00s 
+213   unsolvable   steps=-     states=3055     0.93s 
+214   solvable     steps=170   states=2209     0.10s 
+215   timeout      steps=-     states=46712    6.00s 
+216   solvable     steps=299   states=581      0.06s 
+217   timeout      steps=-     states=31869    6.00s 
+218   timeout      steps=-     states=32523    6.00s 
+219   timeout      steps=-     states=43285    6.00s 
+21    timeout      steps=-     states=44600    6.00s 
+220   timeout      steps=-     states=31341    6.00s 
+221   timeout      steps=-     states=31228    6.00s 
+222   timeout      steps=-     states=42486    6.00s 
+224   timeout      steps=-     states=36788    6.00s 
+22    timeout      steps=-     states=34259    6.00s 
+23    unsolvable   steps=-     states=9761     2.77s 
+24    unsolvable   steps=-     states=2285     1.09s 
+25    solvable     steps=170   states=2209     0.10s 
+26    timeout      steps=-     states=51582    6.00s 
+27    timeout      steps=-     states=35575    6.00s 
+28    timeout      steps=-     states=36206    6.00s 
+29    timeout      steps=-     states=26611    6.00s 
+2     solvable     steps=4     states=8        0.00s 
+30    timeout      steps=-     states=46640    6.00s 
+31    timeout      steps=-     states=31349    6.00s 
