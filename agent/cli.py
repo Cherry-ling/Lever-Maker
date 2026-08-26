@@ -16,12 +16,18 @@ def load(f):
         return json.load(fp)
 
 
-def run_one(f):
+def run_one(f, strict_color=False, max_num=None):
+    bn = os.path.basename(f)
+    if max_num is not None:
+        import re
+        m = re.match(r"lv_([0-9]+)_A\.json$", bn)
+        if not m or int(m.group(1)) > max_num:
+            return None
     try:
         lvl = load(f)
     except Exception as ex:
         return False, [f"(JSON 解析失败: {ex})"], []
-    v = LevelValidator(lvl, os.path.basename(f))
+    v = LevelValidator(lvl, bn, strict_color=strict_color)
     ok, errs, warns = v.validate()
     return ok, errs, warns
 
@@ -29,7 +35,14 @@ def run_one(f):
 def main(argv):
     quiet = "--quiet" in argv
     level = "--level" in argv
-    args = [a for a in argv if not a.startswith("--")]
+    strict = "--strict" in argv
+    max_num = None
+    args = []
+    for a in argv:
+        if a.startswith("--max-num="):
+            max_num = int(a.split("=")[1])
+        elif not a.startswith("--"):
+            args.append(a)
     if not args:
         print(__doc__)
         return 1
@@ -39,10 +52,14 @@ def main(argv):
     else:
         files = [target]
 
-    total = len(files)
+    total = 0
     bad = []
     for f in files:
-        ok, errs, warns = run_one(f)
+        res = run_one(f, strict_color=strict, max_num=max_num)
+        if res is None:
+            continue
+        total += 1
+        ok, errs, warns = res
         if not ok:
             bad.append((f, errs, warns))
             if not quiet:

@@ -16,7 +16,7 @@
 
 | 枚举 | 值 | 说明 |
 |---|---|---|
-| BlockColor | NULL=-1, RED=0, ORANGE=1, YELLOW=2, LIGHT_GREEN=3, LIGHT_BLUE=4, DARK_GREEN=5, CYAN=6, BLUE=7, PURPLE=8, MAGENTA=9, (10 空洞保留), BLACK=11, WHITE=12 | 可玩色 12 种；-1=无色/未选 |
+| BlockColor | RED=0 … MAGENTA=9, BLACK=11, WHITE=12 | **用户拍板 2025：只有 12 种可玩色，无 NULL 玩法色**；10=已移除空洞。color 缺失/NULL/列表外一律不可用（生成校验 --strict 报错；语料回归容忍，仅警告）。无色方块例外：顶层 color 省略 + MatchLockAbility.lockedColor（须∈12色） |
 | DDRotation | Rot0=0, Rot90=1, Rot180=2, Rot270=3 | 逆时针 |
 | BlockMoveMode | BOTH=0, VER=1, HOR=2 | 箭头轴向 |
 | CellType | Default=0, Ice=1 | 地形 |
@@ -84,7 +84,7 @@ interface Block {
   customWidth?: number;       // 自定义矩形（替代 type，语料 1×5/3×3/2×4/4×6）
   customHeight?: number;
   rot?: DDRotation;           // 默认 Rot0
-  color?: number;             // 必填（普通/双色/炸弹等）；无色方块省略
+  color?: number;             // 用户拍板：12 可玩色之一，无 NULL 色；无色方块省略（lockedColor 存真实色）
   gridPos?: { x: number; y: number }; // (0,0) 省略
   layer?: BoardLogicLayer;    // 默认 Layer2；下方区域下层棋子 Layer1(10)
   moveMode?: BlockMoveMode;   // 默认 BOTH；箭头=VER/HOR
@@ -199,3 +199,7 @@ carriages[]: { type(0=Empty/1=Colored), directionFromPrevious(0右/1上/2左/3�
 4. **✅ 黑白（11/12）允许进入编关色池，但尽量少用**（默认取前 5-8 色，黑白低频）。
 5. **✅ 无色区域禁配元素清单边做边补**（当前已知：搓冰机；求解器建模时发现新冲突再补）。
 6. **✅ 障碍墙 100-104 破坏链** = 暂不生成（维持现状）。
+7. **✅（2025）关卡范围** = 只看编号 ≤250（实际 223 关，1-222+224）；250 之后不看。
+8. **✅（2025）颜色** = 仅 12 可玩色，无 NULL；列表外不可用。
+9. **✅（2025）求解器** = 完整状态搜索；全部算子进状态（拖拽移动/格位结算消除/制造机拖出/搓冰机消耗/火车端部消耗/区域解锁/双色剥壳/绑定体移动/炸弹倒计时含暂停/stepLock 解锁/无色区域边界）。
+10. **✅（2025）棋盘规模** = ≥50 格、无上限、须连贯完整；普通关棋子 ≥15 对(30枚)，难关/超难关 ≥18 对(36枚)。

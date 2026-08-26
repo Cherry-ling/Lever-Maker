@@ -16,9 +16,14 @@ from base import (
 
 
 class LevelValidator:
-    def __init__(self, level: dict, name: str = ""):
+    # 合法颜色 = 12 可玩色（0-9/11/12；10 是已移除空洞）。用户拍板：无 NULL 玩法色，
+    # color 缺失或不在列表内一律视为不可用（语料中的历史 NULL 色块仅警告，生成校验严格报错）。
+    VALID_COLORS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12}
+
+    def __init__(self, level: dict, name: str = "", strict_color: bool = False):
         self.level = level
         self.name = name
+        self.strict_color = strict_color   # True=生成关卡校验（NULL/非法色报错）；False=语料回归（警告）
         self.errors = []
         self.warnings = []
 
@@ -64,8 +69,9 @@ class LevelValidator:
                 self.err(f"cells[{i}] 重复格 ({x},{y})")
             seen.add((x, y))
             col = c.get("color", -1)
-            if col not in (-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12):
-                self.err(f"cells[{i}] color={col} 非法（须 -1 或 0-9/11/12）")
+            # 颜色筛选格：cell.color 只能是 12 可玩色之一或 -1（无色普通格）
+            if col != -1 and col not in self.VALID_COLORS:
+                self.err(f"cells[{i}] color={col} 非法（筛色格须 12 可玩色）")
             ct = c.get("cellType", 0)
             if ct not in (0, 1):
                 self.err(f"cells[{i}] cellType={ct} 非法（0=Default/1=Ice）")
@@ -100,11 +106,25 @@ class LevelValidator:
             rot = b.get("rot", 0)
             if rot not in (0, 1, 2, 3):
                 self.err(f"blocks[{i}] rot={rot} 非法（0-3）")
-            # 颜色
-            # 注：无色方块（MatchLockAbility 带 lockedColor）顶层 color 可为省略(NULL)
+            # 颜色（用户拍板 2025：12 可玩色唯一合法，无 NULL 色；缺失/非法视为不可用）
             col = b.get("color", -1)
-            if col != -1 and col not in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12):
-                self.err(f"blocks[{i}] color={col} 非法")
+            has_matchlock = self._has_ability(b, "MatchLockAbility")
+            if col == -1:
+                # 无色方块（MatchLock 带 lockedColor）允许顶层省略；其余缺失为非法
+                if not has_matchlock:
+                    msg = f"blocks[{i}] color 缺失（无 NULL 色；须为 12 可玩色之一，或无色方块带 MatchLockAbility）"
+                    self._color_issue(msg)
+            elif col not in self.VALID_COLORS:
+                self.err(f"blocks[{i}] color={col} 非法（12 可玩色：0-9/11/12）")
+            elif has_matchlock:
+                # 无色方块的 lockedColor 也须合法
+                for a in b.get("abilities") or []:
+                    if a.get("abilityName") == "MatchLockAbility":
+                        for fld in a.get("fields") or []:
+                            if fld.get("Key") == "lockedColor":
+                                lc = fld.get("Value")
+                                if lc not in self.VALID_COLORS:
+                                    self.err(f"blocks[{i}] MatchLock lockedColor={lc} 非法")
             # 层
             layer = b.get("layer", 20)
             norm = layer if layer in (0, 10, 20, 30) else (30 if layer == 40 else None)
@@ -128,6 +148,12 @@ class LevelValidator:
                     self.err(f"blocks[{i}] 占格 ({gx},{gy}) 超出棋盘")
             # （NULL 色块合法：两枚 color=NULL 的块可互为配对消除；无色方块=MatchLock 在 abilities）
             self._v_abilities(b, f"blocks[{i}]")
+
+    def _color_issue(self, msg):
+        if self.strict_color:
+            self.err(msg)
+        else:
+            self.warn(msg)
 
     def _has_ability(self, obj, name):
         for a in obj.get("abilities") or []:
@@ -262,8 +288,8 @@ class LevelValidator:
                 if cw <= 0 or ch <= 0:
                     self.err(f"{label} 第 {i+1} 个生成项 custom 尺寸非法")
             col = it.get("color", -1)
-            if col != -1 and col not in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12):
-                self.err(f"{label} 第 {i+1} 个生成项 color 非法")
+            if col not in self.VALID_COLORS:
+                self.err(f"{label} 第 {i+1} 个生成项 color={col} 非法（12 可玩色）")
 
     # ---------- iceArea ----------
     def _v_ice_area(self):
