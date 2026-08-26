@@ -475,13 +475,16 @@ def resolve(blocks, bi, bj):
 # ---------------------------------------------------------------------------
 # 规范化（簇级，去重）
 # ---------------------------------------------------------------------------
+@lru_cache(maxsize=400000)
+def _mrec(b):
+    """块 → 扁平整数元组（局部格摊平），缓存：静态块在搜索树间复用，加速。"""
+    head = (b[B_COLOR], b[B_WRAPPED], b[B_CD], b[B_GX], b[B_GY],
+            b[B_LAYER], b[B_MODE], b[B_FLOOR])
+    return head + tuple(v for p in b[B_LOCAL] for v in p)
+
+
 def _canon_blocks(blocks):
-    """簇级规范化：groupID>0 成簇（id 值归一化），groupID=0 各自成簇。
-    mrec 输出扁平整数元组（局部格摊平），加速排序/哈希。"""
-    def mrec(b):
-        head = (b[B_COLOR], b[B_WRAPPED], b[B_CD], b[B_GX], b[B_GY],
-                b[B_LAYER], b[B_MODE], b[B_FLOOR])
-        return head + tuple(v for p in b[B_LOCAL] for v in p)
+    """簇级规范化：groupID>0 成簇（id 值归一化），groupID=0 各自成簇。"""
     groups = defaultdict(list)
     singles = []
     for b in blocks:
@@ -489,8 +492,8 @@ def _canon_blocks(blocks):
             groups[b[B_GROUP]].append(b)
         else:
             singles.append(b)
-    keys = [tuple(sorted(mrec(b) for b in members)) for members in groups.values()]
-    keys += [(mrec(b),) for b in singles]
+    keys = [tuple(sorted(_mrec(b) for b in members)) for members in groups.values()]
+    keys += [(_mrec(b),) for b in singles]
     return tuple(sorted(keys))
 
 
