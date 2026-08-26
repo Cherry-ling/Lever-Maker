@@ -178,11 +178,16 @@ carriages[]: { type(0=Empty/1=Colored), directionFromPrevious(0右/1上/2左/3�
 
 ## 7. 校验器三层设计（对应待办 #3 第二步）
 
-| 层 | 检查内容 | 依据 |
-|---|---|---|
-| L1 格式 | 枚举合法 / 必填字段 / 默认值省略规则 / abilities 外壳格式 | schema 定义 |
-| L2 结构 | 占格 ∈ cells / 同层无占格冲突 / 区域参数合法(hp≥0, w,h>0) / 制造机 IsConfigValid / key-lock 配对 / iceArea 键对应组件 | EditorMgr 5 个 Validate + IsConfigValid |
-| L3 语义 | 颜色配平（含双色剥壳） / 每色可达配对 / 炸弹时限 / 区域解锁可达成 | 求解器阶段 |
+| 层 | 检查内容 | 依据 | 状态 |
+|---|---|---|---|
+| L1 格式 | 枚举合法 / 必填字段 / 默认值省略规则 / abilities 外壳格式 | schema 定义 | ✅ 已实现（agent/validator.py） |
+| L2 结构 | 占格 ∈ cells / 同层无占格冲突 / 区域参数合法(hp≥0, w,h>0) / 制造机 IsConfigValid / key-lock 配对 / iceArea 键对应组件 | EditorMgr 5 个 Validate + IsConfigValid | ✅ 已实现（agent/validator.py） |
+| L3 语义 | 颜色配平（含双色剥壳） / 每色可达配对 / 炸弹时限 / 区域解锁可达成 | 求解器阶段 | ⏳ 求解器阶段 |
+
+> **回归验证（2025）**：合法性与格式校验器（Python）已对 **452 关语料全量回归**：**451/452 通过**。
+> - 唯一失败 lv_822 = **关卡数据自身占格重叠**（blocks[15] B_7 rot1 与 blocks[18] B_2X2 重叠 (0,9)/(1,9)；B_7/旋转/碰撞展开已与仓库 Block.LocalGrids 逐行核对一致 → 数据异常，非校验器误报）。孤立案例，记录为已知例外。
+> - **重要语义修正（学习自回归）**：**NULL(-1) 色普通块合法**（语料 922 个），两枚同为 NULL 色的块可互为配对消除（GamePlayMgr 同色判定 LogicColor==LogicColor，NULL==NULL 成立）；无色方块仅指带 MatchLockAbility 的块。
+> - 实现：agent/base.py（枚举/形状/旋转/默认值）+ agent/validator.py（LevelValidator，L1+L2）+ agent/cli.py（批量 CLI）。游戏仓库仍只读。
 
 ---
 

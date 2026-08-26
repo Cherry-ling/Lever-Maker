@@ -47,6 +47,7 @@
 - **占格与放置**：同普通棋子；包装期间可移动、免疫消除。
 - **校验**：无独立校验；按普通块规则（同层不冲突、在棋盘内）。
 - **组合与冲突**：与双色/炸弹/stepLock 可叠加（lv_120 有无色+炸弹）；双层时顶层负责 MatchLock。
+- **⚠️ 与"NULL 色普通块"区分**（回归学习 2025）：语料有大量 color=NULL 无 MatchLock 的块（922 个）——这类是**灰色普通块**，两枚 NULL 色可互为配对消除（同色判定 NULL==NULL），**不是无色方块**。无色方块特指带 MatchLockAbility 的块。
 
 ## 3. 棋子 双色方块（floor 叠放）
 
@@ -126,7 +127,7 @@
          {"type": 10, "color": 0, "quantity": 1, "useCustomSize": false, "moveMode": 0},
          {"type": 4,  "color": 7, "quantity": 1, "useCustomSize": false, "moveMode": 0} ]} ]} ]}
   ```
-- **占格与放置**：机身 LocalBodyGrids 占格（默认 2×3 可旋转）阻挡放置；不可移动。
+- **占格与放置**：机身 LocalBodyGrids 占格（默认 2×3；rotation=1/3 时 3×2）阻挡放置；不可移动。
 - **校验**：IsConfigValid——队列非空 / 每项 quantity>0 / 类型合法(IsSupportedType)；机身占格超棋盘、与同层块/墙/实体冲突 → 拒绝。
 - **组合与冲突**：可放装修区域下（区域为覆盖层不判冲突）；**产出尺寸受判据 C 限制**；拖出=1 步。
 
@@ -140,7 +141,7 @@
       {"Key": "seq", "Value": 0}, {"Key": "leftColor", "Value": 1}, {"Key": "rightColor", "Value": 9},
       {"Key": "leftHp", "Value": 3}, {"Key": "rightHp", "Value": 0}, {"Key": "orientation", "Value": 1} ]} ]}
   ```
-- **占格与放置**：N 格长条(N=leftHp+rightHp+1 底部)不可移动；占用阻挡。
+- **占格与放置**（源码实测）：GridPos=**中心/底部占位**；leftHp 段向 **-方向**延伸（水平向左/纵向向下），rightHp 段向 **+方向**延伸（水平向右/纵向向上）；TotalHp=0 时占位消失。orientation 0=水平/1=纵向。不可移动；占用阻挡。
 - **校验**：同实体通用（占格冲突/超棋盘 → 拒绝）。
 - **组合与冲突**：不可配置在无色区域内（编关约束）。
 
